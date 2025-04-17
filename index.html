@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Join Course Form</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    form, table { max-width: 500px; margin-bottom: 30px; }
+    input, select { width: 100%; padding: 8px; margin: 5px 0; }
+    button { padding: 10px 20px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+  </style>
+</head>
+<body>
+
+  <h2>Join Course Form</h2>
+  <form id="joinForm">
+    <input type="text" id="name" placeholder="Name" required />
+    <input type="text" id="address" placeholder="Address" required />
+    <input type="text" id="mobile" placeholder="Mobile Number" required />
+    <input type="text" id="course" placeholder="Course" required />
+    <input type="number" id="fee" placeholder="Fee" required />
+    <button type="submit">Submit</button>
+  </form>
+
+  <h3>Registered Students</h3>
+  <table id="studentTable">
+    <thead>
+      <tr><th>Name</th><th>Course</th><th>Fee</th><th>Actions</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const form = document.getElementById('joinForm');
+    const tableBody = document.querySelector('#studentTable tbody');
+
+    const apiURL = 'http://localhost:3000/students';
+
+    async function loadStudents() {
+      const res = await fetch(apiURL);
+      const students = await res.json();
+      tableBody.innerHTML = '';
+      students.forEach(student => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${student.name}</td>
+          <td>${student.course}</td>
+          <td>${student.fee}</td>
+          <td>
+            <button onclick="deleteStudent('${student._id}')">Delete</button>
+            <button onclick="editStudent('${student._id}')">Edit</button>
+          </td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const student = {
+        name: form.name.value,
+        address: form.address.value,
+        mobile: form.mobile.value,
+        course: form.course.value,
+        fee: form.fee.value
+      };
+
+      await fetch(apiURL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(student)
+      });
+
+      form.reset();
+      loadStudents();
+    });
+
+    async function deleteStudent(id) {
+      await fetch(`${apiURL}/${id}`, { method: 'DELETE' });
+      loadStudents();
+    }
+
+    async function editStudent(id) {
+      const res = await fetch(`${apiURL}/${id}`);
+      const data = await res.json();
+      form.name.value = data.name;
+      form.address.value = data.address;
+      form.mobile.value = data.mobile;
+      form.course.value = data.course;
+      form.fee.value = data.fee;
+
+      form.onsubmit = async (e) => {
+        e.preventDefault();
+        await fetch(`${apiURL}/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: form.name.value,
+            address: form.address.value,
+            mobile: form.mobile.value,
+            course: form.course.value,
+            fee: form.fee.value
+          })
+        });
+        form.reset();
+        form.onsubmit = defaultSubmit;
+        loadStudents();
+      };
+    }
+
+    async function defaultSubmit(e) {
+      e.preventDefault();
+    }
+
+    loadStudents();
+  </script>
+</body>
+</html>
